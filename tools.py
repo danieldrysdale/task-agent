@@ -136,12 +136,16 @@ def _search_docs(query: str) -> str:
         )
         response.raise_for_status()
         data = response.json()
-        results = data.get("results", [])
-        if not results:
+        # doc-rag api returns {answer, found_answer, sources}
+        if not data.get("found_answer", False):
             return "No relevant documents found."
-        parts = []
-        for i, r in enumerate(results, 1):
-            parts.append(f"[{i}] {r.get('text', '').strip()}")
+        answer = data.get("answer", "")
+        sources = data.get("sources", [])
+        parts = [answer]
+        if sources:
+            parts.append("\nSources:")
+            for i, s in enumerate(sources, 1):
+                parts.append(f"[{i}] {s.get('text', '').strip()[:200]}")
         return "\n\n".join(parts)
     except httpx.ConnectError:
         return "Error: doc-rag service is not available (is it running on port 8001?)"
